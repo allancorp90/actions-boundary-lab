@@ -1,0 +1,21 @@
+name: fork-pr-probe
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Context capture
+        env:
+          MAPPED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "actor=$GITHUB_ACTOR event=$GITHUB_EVENT_NAME"
+          echo "mapped length: ${#MAPPED_TOKEN}"
+          code_issue=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer ${MAPPED_TOKEN}" -H 'Accept: application/vnd.github+json' -d '{"title":"probe-write-test","body":"auto probe, will close"}' "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/issues")
+          echo "POST issue as fork-PR token -> $code_issue (expect 403 read-only)"
+          code_repo=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${MAPPED_TOKEN}" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY")
+          echo "GET own repo -> $code_repo (expect 200)"
