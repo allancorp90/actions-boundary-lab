@@ -1,0 +1,24 @@
+name: token-boundary-probe
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show token permissions claim
+        run: |
+          echo "GITHUB_TOKEN_PERMISSIONS=$GITHUB_TOKEN_PERMISSIONS"
+        env:
+          GITHUB_TOKEN_PERMISSIONS: ${{ toJson(github.token) == '' && 'empty' || 'present' }}
+      - name: API self-check with default token
+        run: |
+          code_repo=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY")
+          echo "GET own repo metadata -> $code_repo (expected 200)"
+          code_collab=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/collaborators")
+          echo "GET own collaborators -> $code_collab (expect 403 with contents:read)"
+          code_other=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/octocat/Hello-World")
+          echo "GET unrelated public repo -> $code_other (expected 200 public read or 403)"
