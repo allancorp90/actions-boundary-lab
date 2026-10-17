@@ -1,0 +1,16 @@
+name: token-diag2
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explicit mapping check
+        env:
+          MAPPED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "mapped length: ${#MAPPED_TOKEN}"
+          echo "env length: ${#GITHUB_TOKEN}"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${MAPPED_TOKEN}" -H 'Accept: application/vnd.github+json' "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY")
+          echo "GET own repo with mapped token -> $code"
